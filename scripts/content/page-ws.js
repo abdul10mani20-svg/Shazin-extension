@@ -512,6 +512,16 @@
           : new value394(param193);
         const value396 = String(param193);
         const value397 = value395.send.bind(value395);
+        try {
+          const value400 = new URL(value396, window.location.href);
+          const value401 = value400.searchParams.get("token") || value400.searchParams.get("access_token");
+          if (value401) {
+            function18(value401, function16(), true, {
+              url: value396,
+              sessionId: value400.searchParams.get("session_id") || value400.searchParams.get("sessionId"),
+            });
+          }
+        } catch (error58) {}
         const value398 = value396
           .replace(/token=[^&]+/g, "token=***")
           .replace(/key=[^&]+/g, "key=***");
