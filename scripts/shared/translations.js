@@ -2,10 +2,6 @@ window._ql_lang = "en";
 const _I18N_CLOCK_SVG =
   '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;margin-right:3px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
 var _I18N_EN = {
-    "license.title": "Activate License",
-    "license.desc": "Enter your license key to continue.",
-    "license.validate": "Activate License",
-    "license.divider": "official site",
     "header.notifications": "Notifications",
     "header.panel": "Open in Side Panel",
     "header.theme": "Theme",
@@ -42,13 +38,6 @@ var _I18N_EN = {
     loading: "Loading...",
     "alert.success": "Success!",
     "btn.ok": "OK",
-    "expired.title": "License Expired!",
-    "expired.text": "Contact your provider to renew your license!",
-    "expired.renew": "🌐 Visit Site",
-    "expired.close": "Close",
-    "countdown.trial": "Trial expires in",
-    "countdown.license": "License expires in",
-    "countdown.expired": "⏰ License expired",
     "history.empty.title": "No messages",
     "history.empty.desc": "Your sent prompts will appear here as history.",
     "history.clear": "🗑 Clear History",
@@ -225,9 +214,6 @@ function _applyTranslations() {
   var valueUtilityQlDownload = document.getElementById("ql-download-project");
   if (valueUtilityQlDownload) valueUtilityQlDownload.innerHTML = "⬇ <span>" + t("btn.download") + "</span>";
   _setTxt("#ql-security-scan", "btn.security");
-  _setTxt("#ql-validate-btn", "license.validate");
-  _setTxt(".ql-gate-title", "license.title");
-  _setTxt(".ql-gate-desc", "license.desc");
   _setTitle(".ql-notif-btn", "header.notifications");
   _setTitle("#ql-panel-btn", "header.panel");
   var value333 = document.getElementById("ql-shield-label");
@@ -261,9 +247,6 @@ function _applyTranslations() {
   var valueUtilitySpDownload = document.getElementById("sp-download-project");
   if (valueUtilitySpDownload) valueUtilitySpDownload.innerHTML = "⬇ <span>" + t("btn.download") + "</span>";
   _setTxt("#sp-security-scan", "btn.security");
-  _setTxt("#sp-validate-btn", "license.validate");
-  _setTxt(".sp-gate-title", "license.title");
-  _setTxt(".sp-gate-desc", "license.desc");
   var value338 = document.getElementById("sp-shield-label");
   if (value338) {
     var value339 = document.getElementById("sp-shield-btn");

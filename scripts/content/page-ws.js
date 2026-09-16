@@ -120,7 +120,7 @@
         ? "Chat is disabled by admin"
         : qlNativeGuardReason === "new_project_disabled"
           ? "New Project is disabled by admin"
-          : "No active license";
+          : "Feature disabled by admin";
     return new Response(JSON.stringify({ ok: false, error }), {
       status: 403,
       headers: { "content-type": "application/json" },

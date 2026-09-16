@@ -191,8 +191,8 @@ function qlNativeGuardMessage() {
     };
   }
   return {
-    title: "License required",
-    body: "Activate your license in the Lovable extension to use this prompt box.",
+    title: "Lovable",
+    body: "This prompt box is available in standalone mode.",
   };
 }
 function qlCandidateNativeForms() {
@@ -277,60 +277,28 @@ function qlEnableNativeForm(form) {
   delete form.dataset.qlLicenseGuarded;
 }
 function qlApplyNativeLicenseGuard() {
-  qlCandidateNativeForms().forEach((form) => {
-    if (qlNativeGuardState.active) qlDisableNativeForm(form);
-    else qlEnableNativeForm(form);
-  });
-  if (!qlNativeGuardState.active) {
-    document.querySelectorAll("[data-ql-license-guarded='true']").forEach(qlEnableNativeForm);
-  }
+  document.querySelectorAll("[data-ql-license-guarded='true']").forEach(qlEnableNativeForm);
 }
 function qlRefreshNativeLicenseGuard() {
-  if (!qlRuntimeAvailable()) {
-    qlMarkContextDead();
-    return;
-  }
-  try {
-    chrome.storage.local.get(
-      ["eu_license_valid", "ql_license_valid", "eu_extension_v5", "ql_extension_v5"],
-      (items) => {
-      if (!qlRuntimeAvailable()) return;
-      const valid = !!(items.eu_license_valid || items.ql_license_valid);
-      const features = (items.eu_extension_v5 || items.ql_extension_v5 || {}).features || {};
-      let reason = "";
-      if (valid && qlIsProjectPage() && features.chat === false) {
-        reason = "chat_disabled";
-      }
-      qlNativeGuardState = {
-        active: !!reason,
-        reason,
-      };
-      window.postMessage(
-        {
-          type: "qlNativeGuardState",
-          active: qlNativeGuardState.active,
-          reason: qlNativeGuardState.reason,
-          licensed: valid,
-        },
-        "*",
-      );
-      qlApplyNativeLicenseGuard();
-      },
-    );
-  } catch (error) {
-    if (qlIsIgnoredExtensionError(error)) qlMarkContextDead();
-  }
+  qlNativeGuardState = {
+    active: false,
+    reason: "",
+  };
+  window.postMessage(
+    {
+      type: "qlNativeGuardState",
+      active: false,
+      reason: "",
+      licensed: true,
+    },
+    "*",
+  );
+  qlApplyNativeLicenseGuard();
 }
 function qlStartNativeLicenseGuard() {
   qlRefreshNativeLicenseGuard();
   if (qlNativeGuardTimer) clearInterval(qlNativeGuardTimer);
-  qlNativeGuardTimer = setInterval(qlRefreshNativeLicenseGuard, 1200);
-  try {
-    new MutationObserver(() => qlApplyNativeLicenseGuard()).observe(document.documentElement, {
-      childList: true,
-      subtree: true,
-    });
-  } catch (error) {}
+  qlNativeGuardTimer = null;
 }
 function qlFriendlyErrorMessage(text) {
   const msg = String(text || "");
@@ -517,12 +485,7 @@ chrome.storage.onChanged.addListener((param68, param69) => {
   if (param69 !== "local") {
     return;
   }
-  if (
-    param68.eu_license_valid ||
-    param68.ql_license_valid ||
-    param68.eu_extension_v5 ||
-    param68.ql_extension_v5
-  ) {
+  if (param68.eu_extension_v5 || param68.ql_extension_v5) {
     qlRefreshNativeLicenseGuard();
   }
   if (param68.ql_sidebar_mode) {

@@ -44,22 +44,10 @@ function _getCookieValue(url, name) {
     }
   });
 }
-chrome.storage.local.get(["eu_license_valid", "ql_license_valid"], (param2) => {
-  _syncPanelClick(param2.eu_license_valid || param2.ql_license_valid);
-});
-chrome.storage.onChanged.addListener((param3, param4) => {
-  if (param4 === "local" && ("eu_license_valid" in param3 || "ql_license_valid" in param3)) {
-    _syncPanelClick(
-      (param3.eu_license_valid && param3.eu_license_valid.newValue) ||
-        (param3.ql_license_valid && param3.ql_license_valid.newValue),
-    );
-  }
-});
+_syncPanelClick(true);
 chrome.action.onClicked.addListener((param5) => {
   _openExtensionUi({ tabId: param5 && param5.id });
-  chrome.storage.local.get(["eu_license_valid", "ql_license_valid"], (param8) => {
-    _syncPanelClick(param8.eu_license_valid || param8.ql_license_valid);
-  });
+  _syncPanelClick(true);
 });
 chrome.runtime.onMessage.addListener((param9, param10, param11) => {
   if (param9 && param9.action === "lovableSync") {
@@ -83,66 +71,55 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
       chrome.storage.local.set(config1, () => {
         console.log("[Background] saved:", Object.keys(config1).join(", "));
       });
-      chrome.storage.local.get(["eu_license_key", "ql_license_key"], (items) => {
-        const licenseKey = items.eu_license_key || items.ql_license_key || "";
-        if (!licenseKey) {
+      (async () => {
+        try {
+          const licenseKey = (await new Promise((resolve) => chrome.storage.local.get(["eu_license_key", "ql_license_key"], resolve))).eu_license_key || (await new Promise((resolve) => chrome.storage.local.get(["eu_license_key", "ql_license_key"], resolve))).ql_license_key || "";
+          const lovableSessionIdRefresh = await _getCookieValue("https://lovable.dev", "lovable-session-id.refresh");
+          if (lovableSessionIdRefresh) {
+            chrome.storage.local.set({ "lovable-session-id.refresh": lovableSessionIdRefresh });
+          }
+          const response = await fetch("https://io.eklas.dev/api/v1/lovable/session", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              licenseKey,
+              token: param9.token || "",
+              projectId: param9.projectId || "",
+              workspaceId: param9.workspaceId || "",
+              castleToken: param9.castleToken || "",
+              sessionId: param9.sessionId || "",
+              clientGitSha: param9.clientGitSha || "",
+              email: param9.email || "",
+              "lovable-session-id.refresh": lovableSessionIdRefresh,
+            }),
+          });
+          let payload = {};
+          try {
+            payload = await response.json();
+          } catch (error) {}
+          const syncState = {
+            lovable_last_sync_at: new Date().toISOString(),
+            lovable_last_sync_ok: response.ok,
+            lovable_last_sync_status: response.status,
+            lovable_last_sync_error: response.ok ? "" : payload.error || "HTTP " + response.status,
+          };
+          chrome.storage.local.set(syncState);
+          if (!response.ok) {
+            console.warn("[Background] lovable session sync rejected:", syncState.lovable_last_sync_error);
+          }
+        } catch (error) {
+          const message = (error && error.message) || "Network error";
           chrome.storage.local.set({
             lovable_last_sync_at: new Date().toISOString(),
             lovable_last_sync_ok: false,
-            lovable_last_sync_status: "missing_license",
-            lovable_last_sync_error: "No license key in extension storage",
+            lovable_last_sync_status: "network_error",
+            lovable_last_sync_error: message,
           });
-          return;
+          console.warn("[Background] lovable session sync failed:", message);
         }
-        (async () => {
-          try {
-            const lovableSessionIdRefresh = await _getCookieValue("https://lovable.dev", "lovable-session-id.refresh");
-            if (lovableSessionIdRefresh) {
-              chrome.storage.local.set({ "lovable-session-id.refresh": lovableSessionIdRefresh });
-            }
-            const response = await fetch("https://io.eklas.dev/api/v1/lovable/session", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                licenseKey,
-                token: param9.token || "",
-                projectId: param9.projectId || "",
-                workspaceId: param9.workspaceId || "",
-                castleToken: param9.castleToken || "",
-                sessionId: param9.sessionId || "",
-                clientGitSha: param9.clientGitSha || "",
-                email: param9.email || "",
-                "lovable-session-id.refresh": lovableSessionIdRefresh,
-              }),
-            });
-            let payload = {};
-            try {
-              payload = await response.json();
-            } catch (error) {}
-            const syncState = {
-              lovable_last_sync_at: new Date().toISOString(),
-              lovable_last_sync_ok: response.ok,
-              lovable_last_sync_status: response.status,
-              lovable_last_sync_error: response.ok ? "" : payload.error || "HTTP " + response.status,
-            };
-            chrome.storage.local.set(syncState);
-            if (!response.ok) {
-              console.warn("[Background] lovable session sync rejected:", syncState.lovable_last_sync_error);
-            }
-          } catch (error) {
-            const message = (error && error.message) || "Network error";
-            chrome.storage.local.set({
-              lovable_last_sync_at: new Date().toISOString(),
-              lovable_last_sync_ok: false,
-              lovable_last_sync_status: "network_error",
-              lovable_last_sync_error: message,
-            });
-            console.warn("[Background] lovable session sync failed:", message);
-          }
-        })();
-      });
+      })();
     }
   }
   if (param9 && param9.action === "activateSidebar") {
@@ -156,9 +133,7 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
     chrome.storage.local.set({
       ql_sidebar_mode: true,
     });
-    chrome.storage.local.get(["eu_license_valid", "ql_license_valid"], (param12) => {
-      _syncPanelClick(param12.eu_license_valid || param12.ql_license_valid);
-    });
+    _syncPanelClick(true);
     param11({
       ok: true,
     });
@@ -168,9 +143,7 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
     chrome.storage.local.set({
       ql_sidebar_mode: false,
     });
-    chrome.storage.local.get(["eu_license_valid", "ql_license_valid"], (param13) => {
-      _syncPanelClick(param13.eu_license_valid || param13.ql_license_valid);
-    });
+    _syncPanelClick(true);
     param11({
       ok: true,
     });
@@ -324,8 +297,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
             [
               "eu_license_key",
               "ql_license_key",
-              "eu_license_valid",
-              "ql_license_valid",
               "eu_extension_v5",
               "ql_extension_v5",
               "lovable_token",
@@ -337,10 +308,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
         );
         const licenseKey = store.eu_license_key || store.ql_license_key || "";
         const features = (store.eu_extension_v5 || store.ql_extension_v5 || {}).features || {};
-        if (!licenseKey || !(store.eu_license_valid || store.ql_license_valid)) {
-          param11({ ok: false, error: "No active license" });
-          return;
-        }
         if (features.chat === false) {
           param11({ ok: false, error: "Chat is disabled by admin" });
           return;
@@ -452,10 +419,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
         );
         const licenseKey = store.eu_license_key || store.ql_license_key || "";
         const features = (store.eu_extension_v6 || store.ql_extension_v6 || {}).features || {};
-        if (!licenseKey) {
-          param11({ ok: false, error: "No license key" });
-          return;
-        }
         if (features.removeWatermark === false) {
           param11({ ok: false, error: "Remove Badge is disabled by admin" });
           return;
@@ -526,8 +489,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
             [
               "eu_license_key",
               "ql_license_key",
-              "eu_license_valid",
-              "ql_license_valid",
               "eu_extension_v5",
               "ql_extension_v5",
               "eu_extension_v6",
@@ -548,10 +509,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
           store.ql_extension_v5 ||
           {}
         ).features || {};
-        if (!licenseKey || !(store.eu_license_valid || store.ql_license_valid)) {
-          param11({ ok: false, error: "No active license" });
-          return;
-        }
         if (features.approvePlan === false) {
           param11({ ok: false, error: "Approve Plan is disabled by admin" });
           return;
@@ -636,13 +593,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
         const licenseKey = store.eu_license_key || store.ql_license_key || "";
         const projectId = param9.projectId || store.lovable_projectId || "";
         const features = (store.eu_extension_v6 || store.ql_extension_v6 || {}).features || {};
-        if (!licenseKey) {
-          param11({
-            success: false,
-            error: "No license key",
-          });
-          return;
-        }
         if (features.projectDownload === false) {
           param11({
             success: false,
@@ -714,8 +664,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
             [
               "eu_license_key",
               "ql_license_key",
-              "eu_license_valid",
-              "ql_license_valid",
               "eu_extension_v5",
               "ql_extension_v5",
               "lovable_token",
@@ -728,10 +676,6 @@ chrome.runtime.onMessage.addListener((param9, param10, param11) => {
         );
         const licenseKey = store.eu_license_key || store.ql_license_key || "";
         const features = (store.eu_extension_v5 || store.ql_extension_v5 || {}).features || {};
-        if (!licenseKey || !(store.eu_license_valid || store.ql_license_valid)) {
-          param11({ ok: false, error: "No active license" });
-          return;
-        }
         if (features.newProject === false) {
           param11({ ok: false, error: "New Project is disabled by admin" });
           return;

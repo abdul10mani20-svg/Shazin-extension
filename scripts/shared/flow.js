@@ -1,13 +1,9 @@
 (function () {
   const API_BASE = "https://io.eklas.dev";
   const CURRENT_VERSION = "6.0";
-  const LICENSE_ATTESTATION_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEH2QnTYPpfzaCe8lbuDjxl57/Ltje
-bcLX12+2QfP8axSYO5nipG0unE8svZvOUAymW692MPg06yF4iKlP1UiiAg==
------END PUBLIC KEY-----`;
 
   function getLicenseKey(store) {
-    return store.eu_license_key || store.ql_license_key || "";
+    return "";
   }
 
   async function getStoredLovableEmail() {
@@ -24,14 +20,14 @@ bcLX12+2QfP8axSYO5nipG0unE8svZvOUAymW692MPg06yF4iKlP1UiiAg==
     const config = payload && payload.config ? payload.config : {};
     const brandName = config.brandName || config.brandText || license.bound_email || "Lovable";
     return {
-      valid: !!(payload && payload.ok),
-      message: payload && payload.ok ? "License activated" : payload?.error || "Invalid license",
-      reason: payload?.status || payload?.reason || null,
+      valid: true,
+      message: payload && payload.ok === false ? (payload.error || "Standalone mode") : "Standalone mode",
+      reason: payload?.status || payload?.reason || "standalone",
       session_id: payload?.session_id || null,
       user_name: brandName,
       expires_at: license.expires_at || null,
       activated_at: license.created_at || null,
-      status: license.plan || license.status || null,
+      status: license.plan || license.status || "standalone",
       license_id: payload?.license_id || null,
       email: license.bound_email || payload?.email || null,
       online_count: payload?.online_count || 0,
@@ -113,30 +109,9 @@ bcLX12+2QfP8axSYO5nipG0unE8svZvOUAymW692MPg06yF4iKlP1UiiAg==
     const operations = normalized.operations || {};
     const extensionV5 = normalized.extensionV5 || {};
     return {
-      eu_license_valid: normalized.valid,
-      eu_license_key: normalized.key || "",
-      eu_license_id: normalized.license_id || null,
-      eu_session_id: normalized.session_id || null,
-      eu_user_name: normalized.user_name || null,
-      eu_user_email: normalized.email || null,
-      eu_expires_at: normalized.expires_at || null,
-      eu_activated_at: normalized.activated_at || null,
-      eu_license_status: normalized.status || null,
-      eu_license_config: normalized.config || {},
       eu_branding: branding,
       eu_operations: operations,
       eu_extension_v5: extensionV5,
-
-      ql_license_valid: normalized.valid,
-      ql_license_key: normalized.key || "",
-      ql_license_id: normalized.license_id || null,
-      ql_session_id: normalized.session_id || null,
-      ql_user_name: normalized.user_name || null,
-      ql_user_email: normalized.email || null,
-      ql_expires_at: normalized.expires_at || null,
-      ql_activated_at: normalized.activated_at || null,
-      ql_license_status: normalized.status || null,
-      ql_license_config: normalized.config || {},
       ql_branding: branding,
       ql_operations: operations,
       ql_extension_v5: extensionV5,
@@ -144,158 +119,7 @@ bcLX12+2QfP8axSYO5nipG0unE8svZvOUAymW692MPg06yF4iKlP1UiiAg==
   }
 
   function clearKeys() {
-    return [
-      "eu_license_valid",
-      "eu_license_key",
-      "eu_license_id",
-      "eu_session_id",
-      "eu_user_name",
-      "eu_user_email",
-      "eu_expires_at",
-      "eu_activated_at",
-      "eu_license_status",
-      "eu_license_config",
-      "eu_branding",
-      "eu_operations",
-      "eu_extension_v5",
-      "eu_extension_v6",
-      "ql_license_valid",
-      "ql_license_key",
-      "ql_license_id",
-      "ql_session_id",
-      "ql_user_name",
-      "ql_user_email",
-      "ql_expires_at",
-      "ql_activated_at",
-      "ql_license_status",
-      "ql_license_config",
-      "ql_branding",
-      "ql_operations",
-      "ql_extension_v5",
-      "ql_extension_v6",
-    ];
-  }
-
-  async function validateLicense(key, options) {
-    const email = String(options?.email || (await getStoredLovableEmail()) || "").trim().toLowerCase();
-    const response = await fetch(`${API_BASE}/api/v1/licenses/validate`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        key,
-        licenseKey: key,
-        email,
-        extensionVersion: CURRENT_VERSION,
-        deviceId: options?.deviceId || "",
-        heartbeat: !!options?.heartbeat,
-      }),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok && !payload.error) {
-      payload.error = `HTTP ${response.status}`;
-    }
-    if (response.ok && payload?.ok) {
-      const serverTime = normalizeServerTime(payload.server_time || response.headers.get("Date"));
-      const attestationOk = await verifyServerAttestation(
-        payload.attestation,
-        key,
-        payload.license || {},
-        serverTime,
-      );
-      if (!serverTime || !attestationOk) {
-        return normalizeValidation(
-          {
-            ok: false,
-            error: !serverTime
-              ? "License server did not provide verified time"
-              : "License server attestation failed",
-          },
-          key,
-        );
-      }
-      if (isExpiredAtServerTime(payload.license?.expires_at || payload.license?.expiresAt, serverTime)) {
-        return normalizeValidation({ ok: false, error: "License expired", reason: "expired" }, key);
-      }
-    }
-    return normalizeValidation(payload, key);
-  }
-
-  function normalizeServerTime(input) {
-    const time = new Date(input || "").getTime();
-    return Number.isFinite(time) ? new Date(time).toISOString() : null;
-  }
-
-  function isExpiredAtServerTime(expiresAt, serverTime) {
-    if (!expiresAt) return false;
-    const expiresMs = new Date(expiresAt).getTime();
-    const serverMs = new Date(serverTime).getTime();
-    return Number.isFinite(expiresMs) && Number.isFinite(serverMs) && serverMs >= expiresMs;
-  }
-
-  async function verifyServerAttestation(attestation, licenseKey, license, serverTime) {
-    try {
-      if (!attestation || attestation.alg !== "ES256") return false;
-      if (!attestation.payload || !attestation.signature) return false;
-      const payloadText = new TextDecoder().decode(base64UrlDecode(attestation.payload));
-      const payload = JSON.parse(payloadText);
-      const expectedHash = await sha256Hex(
-        `attestation:${(licenseKey || "").trim().toUpperCase().replace(/\s+/g, "")}`,
-      );
-      if (payload.v !== 1) return false;
-      if (payload.aud !== "io.eklas.dev") return false;
-      if (payload.license_hash !== expectedHash) return false;
-      if (payload.server_time !== serverTime) return false;
-      if ((payload.expires_at || null) !== (license.expires_at || license.expiresAt || null)) return false;
-      if ((payload.plan || null) !== (license.plan || null)) return false;
-      if ((payload.bound_email || null) !== (license.bound_email || license.boundEmail || null)) return false;
-      const publicKey = await crypto.subtle.importKey(
-        "spki",
-        pemToBytes(LICENSE_ATTESTATION_PUBLIC_KEY_PEM),
-        {
-          name: "ECDSA",
-          namedCurve: "P-256",
-        },
-        false,
-        ["verify"],
-      );
-      return crypto.subtle.verify(
-        {
-          name: "ECDSA",
-          hash: "SHA-256",
-        },
-        publicKey,
-        base64UrlDecode(attestation.signature),
-        new TextEncoder().encode(attestation.payload),
-      );
-    } catch {
-      return false;
-    }
-  }
-
-  async function sha256Hex(input) {
-    const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(input)));
-    return Array.from(new Uint8Array(digest))
-      .map((byte) => byte.toString(16).padStart(2, "0"))
-      .join("");
-  }
-
-  function base64UrlDecode(input) {
-    const normalized = String(input || "").replace(/-/g, "+").replace(/_/g, "/");
-    const padded = normalized + "=".repeat((4 - (normalized.length % 4)) % 4);
-    const binary = atob(padded);
-    const bytes = new Uint8Array(binary.length);
-    for (let index = 0; index < binary.length; index++) bytes[index] = binary.charCodeAt(index);
-    return bytes;
-  }
-
-  function pemToBytes(pem) {
-    const b64 = String(pem || "")
-      .replace(/-----BEGIN [^-]+-----/g, "")
-      .replace(/-----END [^-]+-----/g, "")
-      .replace(/\s+/g, "");
-    return base64UrlDecode(b64.replace(/\+/g, "-").replace(/\//g, "_"));
+    return [];
   }
 
   async function improvePrompt(prompt, key) {
@@ -579,7 +403,6 @@ body.sp-light .sp-block-meta span{border-color:rgba(15,15,25,.08);background:rgb
     API_BASE,
     CURRENT_VERSION,
     getLicenseKey,
-    validateLicense,
     improvePrompt,
     sendChat,
     uploadMedia,

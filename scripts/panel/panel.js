@@ -533,67 +533,7 @@
     return;
   }
   function function30() {
-    if (euRuntimeRefreshTimer) {
-      clearInterval(euRuntimeRefreshTimer);
-      euRuntimeRefreshTimer = null;
-    }
-    euOperationBlocked = false;
-    const value484 = document.getElementById("sp-body");
-    const valueFooter = document.getElementById("sp-footer");
-    if (valueFooter) {
-      valueFooter.style.display = "none";
-    }
-    value484.innerHTML = spTemplateLicenseGate();
-    euRefreshActivationPageText();
-    euLoadActivationPageContent();
-    document
-      .getElementById("sp-validate-btn")
-      .addEventListener("click", function31);
-  }
-  async function function31() {
-    const value485 = document.getElementById("sp-license-input");
-    const value486 = document.getElementById("sp-license-log");
-    const value487 = value485 ? value485.value.trim().toUpperCase() : "";
-    if (!value487) {
-      value486.className = "sp-log sp-log-error";
-      value486.textContent = "⚠ Enter a key";
-      return;
-    }
-    value486.className = "sp-log sp-log-info";
-    value486.innerHTML = SP_SVG.clock + " Validating...";
-    try {
-      if (!value449) {
-        value449 = await function24();
-      }
-      const value489 = await window.EUBackend.validateLicense(value487, {
-        deviceId: value449,
-      });
-      if (value489.valid) {
-        const euState = euStoreLicenseState(value489);
-        chrome.storage.local.set(
-          euState,
-          () => {
-            value486.className = "sp-log sp-log-success";
-            value486.textContent = "✓ " + value489.message;
-            function20();
-            setTimeout(() => {
-              if (!euRenderOperationBlock(value489.operations)) {
-                function39();
-              }
-              euApplyActiveBranding();
-              euApplyV5FeatureFlags();
-              euMaybeShowOptionalUpgrade(value489.operations);
-              function55(value487);
-            }, 800);
-          },
-        );
-      } else {
-        spShowErrorLog(value486, "✗ ", value489.message);
-      }
-    } catch (error77) {
-      value486.className = "sp-log sp-log-error";
-      value486.textContent = "✗ Connection error";
-    }
+    function39();
   }
   function function32(param248) {
     chrome.storage.local.get([text17], function (param249) {
@@ -695,7 +635,7 @@
         '</div><div class="sp-sync-status" id="sp-sync">' +
         SP_SVG.clock +
         t("sync.waiting") +
-        '</div><div class="sp-trial-countdown" id="sp-countdown" style="display:none"></div></div><div id="sp-reseller-btn" style="display:none;margin-bottom:14px"><a href="https://lovable.dev" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(124,90,255,0.3);background:rgba(124,90,255,0.06);color:var(--ql-accent);text-decoration:none;font-size:12px;font-weight:700;transition:all 0.2s">💼 Official Site<span style="margin-left:auto;font-size:10px;opacity:0.6">→</span></a></div>' +
+        '</div></div><div id="sp-reseller-btn" style="display:none;margin-bottom:14px"><a href="https://lovable.dev" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(124,90,255,0.3);background:rgba(124,90,255,0.06);color:var(--ql-accent);text-decoration:none;font-size:12px;font-weight:700;transition:all 0.2s">💼 Official Site<span style="margin-left:auto;font-size:10px;opacity:0.6">→</span></a></div>' +
         '<div id="sp-tab-content"></div>';
       text16 = "prompt";
       function40();
@@ -879,59 +819,6 @@
         }
       },
     );
-  }
-  function function43() {
-    if (!value446) {
-      return;
-    }
-    const value508 = document.getElementById("sp-countdown");
-    if (!value508) {
-      return;
-    }
-    value508.style.display = "flex";
-    const value509 = Date.now();
-    function function66() {
-      const value510 = new Date(value446).getTime();
-      const value511 = Math.max(value510 - value509, 3600000);
-      const value512 = value510 - Date.now();
-      if (value512 <= 0) {
-        value508.innerHTML =
-          '<span style="color:var(--ql-danger);font-weight:600;font-size:12px">' +
-          t("countdown.expired") +
-          "</span>";
-        return;
-      }
-      const value513 = Math.floor(value512 / 86400000);
-      const value514 = Math.floor((value512 % 86400000) / 3600000);
-      const value515 = Math.floor((value512 % 3600000) / 60000);
-      const value516 = Math.floor((value512 % 60000) / 1000);
-      const value517 = Math.max(0, Math.min(100, (value512 / value511) * 100));
-      let value518 =
-        value513 > 0
-          ? value513 + "d " + value514 + "h " + value515 + "m"
-          : value514 > 0
-            ? value514 +
-              "h " +
-              value515 +
-              "m " +
-              String(value516).padStart(2, "0") +
-              "s"
-            : value515 + ":" + String(value516).padStart(2, "0");
-      const value519 =
-        String(value447).toLowerCase() === "trial" ? t("countdown.trial") : t("countdown.license");
-      const value520 = value517 < 20 ? " sp-bar-urgent" : "";
-      value508.innerHTML = spTemplateCountdown(
-        value519,
-        value518,
-        value517,
-        value520,
-      );
-    }
-    function66();
-    if (value450) {
-      clearInterval(value450);
-    }
-    value450 = setInterval(function66, 1000);
   }
   function function44(param263) {
     try {
@@ -1449,117 +1336,9 @@
   function function55(param295) {
     if (value448) {
       clearInterval(value448);
+      value448 = null;
     }
-    count31 = 0;
-    count32 = 0;
-    value448 = setInterval(async () => {
-      try {
-        if (!chrome.runtime || !chrome.runtime.id) {
-          clearInterval(value448);
-          console.warn("[SP] Heartbeat stopped: extension context invalidated");
-          return;
-        }
-        const value587 = await window.EUBackend.validateLicense(param295, {
-          heartbeat: true,
-          deviceId: value449,
-        });
-        if (!value587.valid) {
-          const value588 = value587.reason === "device_conflict";
-          const value589 =
-            value588 ||
-            value587.reason === "expired" ||
-            value587.reason === "suspended" ||
-            (value587.message &&
-              (value587.message.includes("expired") ||
-                value587.message.includes("suspended")));
-          if (value588) {
-            count31++;
-            if (count31 < 2) {
-              return;
-            }
-          }
-          if (value589) {
-            clearInterval(value448);
-            chrome.storage.local.remove(
-              window.EUBackend.clearKeys(),
-              () => function30(),
-            );
-            try {
-              chrome.tabs.query(
-                {
-                  active: true,
-                  currentWindow: true,
-                },
-                function (param296) {
-                  if (param296[0]) {
-                    spSafeTabSendMessage(param296[0].id, {
-                      action: "qlDeactivateBypass",
-                    });
-                  }
-                },
-              );
-            } catch (error84) {}
-            if (value588) {
-              setTimeout(
-                () => function25("Access Denied", value587.message),
-                500,
-              );
-            }
-          }
-          return;
-        }
-        count31 = 0;
-        count32 = 0;
-        chrome.storage.local.set(euStoreLicenseState(value587));
-        if (euRenderOperationBlock(value587.operations)) {
-          return;
-        }
-        euApplyActiveBranding();
-        euApplyV5FeatureFlags();
-        euMaybeShowOptionalUpgrade(value587.operations);
-        if (value587.user_name) {
-          value445 = value587.user_name;
-          const value590 = document.getElementById("sp-name");
-          if (value590) {
-            value590.textContent = value587.user_name;
-          }
-        }
-        if (value587.expires_at) {
-          value446 = value587.expires_at;
-        }
-        if (value587.status) {
-          value447 = value587.status;
-        }
-      } catch (error85) {
-        if (
-          error85.message &&
-          error85.message.includes("Extension context invalidated")
-        ) {
-          clearInterval(value448);
-          console.warn("[SP] Heartbeat stopped: extension context invalidated");
-          return;
-        }
-        count32++;
-        if (count32 >= 5) {
-          try {
-            chrome.tabs.query(
-              {
-                active: true,
-                currentWindow: true,
-              },
-              function (param297) {
-                if (param297[0]) {
-                  spSafeTabSendMessage(param297[0].id, {
-                    action: "qlDeactivateBypass",
-                  });
-                }
-              },
-            );
-          } catch (error86) {}
-          count32 = 0;
-        }
-      }
-    }, 60000);
+    return;
   }
   function function56() {
     var value591 = document.getElementById("sp-msg");
@@ -1821,10 +1600,6 @@
     });
     chrome.storage.local.get(
       [
-        "ql_license_valid",
-        "ql_license_key",
-        "eu_license_valid",
-        "eu_license_key",
         "eu_user_name",
         "eu_expires_at",
         "eu_activated_at",
@@ -1839,71 +1614,16 @@
         "ql_license_id",
       ],
       async (param312) => {
-        const activeLicenseKey = param312.eu_license_key || param312.ql_license_key;
-        if (param312.eu_license_valid || param312.ql_license_valid) {
-          value445 = param312.eu_user_name || param312.ql_user_name || null;
-          value446 = param312.eu_expires_at || param312.ql_expires_at || null;
-          value447 = param312.eu_license_status || param312.ql_license_status || null;
-          value444 = param312.eu_session_id || param312.ql_session_id || null;
-          value451 = param312.eu_license_id || param312.ql_license_id || null;
-          function39();
-          function20();
-          euApplyActiveBranding();
-          euApplyV5FeatureFlags();
-          euCheckOperationBlock();
-          if (activeLicenseKey) {
-            const callback11 = async (param313) => {
-              try {
-                const value633 = await window.EUBackend.validateLicense(activeLicenseKey, {
-                  heartbeat: true,
-                  deviceId: value449,
-                });
-                if (value633.valid) {
-                  chrome.storage.local.set(euStoreLicenseState(value633));
-                  const value634 = document.getElementById("sp-name");
-                  if (value634) {
-                    value634.textContent = value445 || "User";
-                  }
-                  euApplyActiveBranding();
-                  euApplyV5FeatureFlags();
-                  euCheckOperationBlock();
-                  euMaybeShowOptionalUpgrade(value633.operations);
-                  function43();
-                } else if (value633.reason === "device_conflict") {
-                  if (param313 < 2) {
-                    setTimeout(() => callback11(param313 + 1), 5000);
-                    return;
-                  }
-                  chrome.storage.local.remove(window.EUBackend.clearKeys());
-                  function30();
-                  setTimeout(
-                    () => function25("Access Denied", value633.message),
-                    500,
-                  );
-                } else if (value633.reason === "rate_limited") {
-                  if (param313 < 2) {
-                    setTimeout(() => callback11(param313 + 1), 30000);
-                    return;
-                  }
-                } else {
-                  const value635 =
-                    value633.reason === "expired" ||
-                    value633.reason === "suspended" ||
-                    (value633.message &&
-                      (value633.message.includes("expired") ||
-                        value633.message.includes("suspended")));
-                  if (value635) {
-                    chrome.storage.local.remove(window.EUBackend.clearKeys());
-                    function30();
-                  }
-                }
-              } catch (error93) {}
-            };
-            callback11(1);
-          }
-        } else {
-          function30();
-        }
+        value445 = param312.eu_user_name || param312.ql_user_name || null;
+        value446 = param312.eu_expires_at || param312.ql_expires_at || null;
+        value447 = param312.eu_license_status || param312.ql_license_status || null;
+        value444 = param312.eu_session_id || param312.ql_session_id || null;
+        value451 = param312.eu_license_id || param312.ql_license_id || null;
+        function39();
+        function20();
+        euApplyActiveBranding();
+        euApplyV5FeatureFlags();
+        euCheckOperationBlock();
       },
     );
   })();

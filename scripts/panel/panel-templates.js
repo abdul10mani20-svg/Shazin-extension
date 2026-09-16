@@ -100,19 +100,6 @@ function spSanitizeUrl(param200) {
     return "";
   }
 }
-function spTemplateLicenseGate() {
-  return (
-    '<div class="sp-license-gate"><div class="sp-lock-icon"><img src="' +
-    chrome.runtime.getURL("assets/logo-square.png") +
-    '" alt="Lovable" style="width:56px;height:56px;border-radius:12px;"></div><p class="sp-gate-title" data-i18n="license.title">' +
-    t("license.title") +
-    '</p><p class="sp-gate-desc" data-i18n="license.desc">' +
-    t("license.desc") +
-    '</p><input class="sp-input" id="sp-license-input" placeholder="XXXX-XXXX-XXXX-XXXX" spellcheck="false"><button class="sp-btn-primary" id="sp-validate-btn" data-i18n="license.validate">' +
-    t("license.validate") +
-    '</button><div class="sp-log" id="sp-license-log"></div><div id="sp-activation-copy"></div></div>'
-  );
-}
 function spTemplateMainUI(param201, param202) {
   return (
     '<div id="sp-update-banner" style="display:none"></div><div class="sp-profile-card"><div class="sp-profile-top"><span class="sp-profile-name" id="sp-name">' +
@@ -122,7 +109,7 @@ function spTemplateMainUI(param201, param202) {
     '</div><div class="sp-sync-status" id="sp-sync">' +
     SP_SVG.clock +
     t("sync.waiting") +
-    '</div><div class="sp-trial-countdown" id="sp-countdown" style="display:none"></div></div><div id="sp-reseller-btn" style="display:none;margin-bottom:14px"><a href="https://lovable.dev" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(124,90,255,0.3);background:rgba(124,90,255,0.06);color:var(--ql-accent);text-decoration:none;font-size:12px;font-weight:700;transition:all 0.2s">🌐 Official Site<span style="margin-left:auto;font-size:10px;opacity:0.6">→</span></a></div><div class="sp-log" id="sp-log"></div><span class="sp-shortcuts-title" data-i18n="shortcuts.title">' +
+    '</div></div><div id="sp-reseller-btn" style="display:none;margin-bottom:14px"><a href="https://lovable.dev" target="_blank" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:1px solid rgba(124,90,255,0.3);background:rgba(124,90,255,0.06);color:var(--ql-accent);text-decoration:none;font-size:12px;font-weight:700;transition:all 0.2s">🌐 Official Site<span style="margin-left:auto;font-size:10px;opacity:0.6">→</span></a></div><div class="sp-log" id="sp-log"></div><span class="sp-shortcuts-title" data-i18n="shortcuts.title">' +
     t("shortcuts.title") +
     '</span><div class="sp-shortcuts-grid"><button id="sp-remove-watermark" class="sp-chip sp-utility-chip" data-i18n="btn.watermark">🚫 <span>' +
     t("btn.watermark") +
