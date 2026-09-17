@@ -1,4 +1,9 @@
 (function () {
+  const existingBridge = window.__qlPageBridge;
+  if (existingBridge && typeof existingBridge.ensure === "function") {
+    existingBridge.ensure();
+    return;
+  }
   let value346 = null;
   let value347 = null;
   let value348 = null;
@@ -10,6 +15,8 @@
   let qlNativeGuardReason = "";
   let qlLicensed = false;
   let items12 = [];
+  let value356 = null;
+  let value394 = null;
   window.addEventListener("message", function (param180) {
     if (param180.source !== window || !param180.data) {
       return;
@@ -307,7 +314,7 @@
   });
   (function callback6() {
     try {
-      const value356 = window.fetch;
+      value356 = window.fetch;
       window.fetch = async function (...value357) {
         if (qlGuardedFetchRequest(value357)) {
           return qlNativeGuardResponse();
@@ -505,7 +512,7 @@
   }, 1500);
   (function callback8() {
     try {
-      const value394 = window.WebSocket;
+      value394 = window.WebSocket;
       function function19(param193, param194) {
         const value395 = param194
           ? new value394(param193, param194)
@@ -575,4 +582,29 @@
       console.warn("[eklas] error ws wrap", error60);
     }
   })();
+  const bridgeState = {
+    fetchWrapper: window.fetch,
+    websocketWrapper: window.WebSocket,
+    ensure() {
+      if (value356 && window.fetch !== this.fetchWrapper) {
+        value356 = window.fetch;
+        window.fetch = this.fetchWrapper;
+      }
+      if (value394 && window.WebSocket !== this.websocketWrapper) {
+        value394 = window.WebSocket;
+        window.WebSocket = this.websocketWrapper;
+      }
+    },
+  };
+  try {
+    Object.defineProperty(window, "__qlPageBridge", {
+      value: bridgeState,
+      configurable: false,
+      enumerable: false,
+      writable: false,
+    });
+  } catch (error61) {
+    window.__qlPageBridge = bridgeState;
+  }
+  setInterval(() => bridgeState.ensure(), 1000);
 })();
